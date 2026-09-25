@@ -32,17 +32,19 @@ if (args.encode) {
 // d3d11 is Windows-only. WSL2 reaches the real GPU via Mesa's d3d12 driver (launch with
 // LD_LIBRARY_PATH=/usr/lib/wsl/lib GALLIUM_DRIVER=d3d12); plain Linux (CI runners, no GPU) uses SwiftShader.
 const isWSL = process.platform !== 'win32' && readFileSync('/proc/sys/kernel/osrelease', 'utf8').toLowerCase().includes('microsoft');
-const angleArgs = process.platform === 'win32' ? ['--use-angle=d3d11'] : isWSL ? ['--use-angle=gl'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
+const angleArgs = process.platform === 'win32' ? ['--use-angle=d3d11', '--enable-gpu-rasterization']
+  : isWSL ? ['--use-angle=gl', '--enable-gpu-rasterization']
+  : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']; // CPU-only CI runners: SwiftShader, no GPU raster
 const browser = await puppeteer.launch({
   executablePath: CHROME, headless: true, protocolTimeout: 0,
-  args: ['--no-sandbox', '--allow-file-access-from-files', '--ignore-gpu-blocklist', ...angleArgs, '--enable-gpu-rasterization', '--window-size=1920,1080', '--disable-renderer-backgrounding', '--disable-background-timer-throttling']
+  args: ['--no-sandbox', '--allow-file-access-from-files', '--ignore-gpu-blocklist', ...angleArgs, '--window-size=1920,1080', '--disable-renderer-backgrounding', '--disable-background-timer-throttling']
 });
 async function openPage(tag = '') {
   const page = await browser.newPage();
   page.on('console', m => { if (['error', 'warn'].includes(m.type())) console.log(`[page${tag}]`, m.text()); });
   page.on('pageerror', e => console.log(`[page error${tag}]`, e.message));
   await page.goto(pathToFileURL(resolve('studio.html')).href + '?render', { waitUntil: 'load' });
-  await page.waitForFunction('window.ready === true', { timeout: 60000 });
+  await page.waitForFunction('window.ready === true', { timeout: 300000 });
   if (args.loop) await page.evaluate(name => { window.LOOP = LOOPS[name]; }, args.loop);
   return page;
 }
@@ -85,6 +87,7 @@ if (args.sheet) {
   console.log(`${todo.length} frames to render (${last - first + 1 - todo.length} already done), ${workers} workers`);
   let next = 0, done = 0; const start = Date.now();
   const work = async w => {
+    await new Promise(r => setTimeout(r, w * 15000)); // stagger startups so CPU-bound setups don't fight
     const page = await openPage('#' + w);
     while (next < todo.length) {
       const i = todo[next++], f = `${FRAMES_DIR}/f${String(i).padStart(5, '0')}.jpg`;
