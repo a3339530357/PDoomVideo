@@ -8,7 +8,7 @@
 //   (--loop also works with --sheet, where the times are loop time)
 import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, existsSync, statSync, renameSync, readdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, statSync, renameSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -29,12 +29,13 @@ if (args.encode) {
   process.exit(0);
 }
 
-// d3d11 is a Windows-only ANGLE backend. On WSL/Linux use native GL, which reaches the real GPU
-// when launched with: LD_LIBRARY_PATH=/usr/lib/wsl/lib GALLIUM_DRIVER=d3d12
-const angleArgs = process.platform === 'win32' ? ['--use-angle=d3d11'] : ['--use-angle=gl'];
+// d3d11 is Windows-only. WSL2 reaches the real GPU via Mesa's d3d12 driver (launch with
+// LD_LIBRARY_PATH=/usr/lib/wsl/lib GALLIUM_DRIVER=d3d12); plain Linux (CI runners, no GPU) uses SwiftShader.
+const isWSL = process.platform !== 'win32' && readFileSync('/proc/sys/kernel/osrelease', 'utf8').toLowerCase().includes('microsoft');
+const angleArgs = process.platform === 'win32' ? ['--use-angle=d3d11'] : isWSL ? ['--use-angle=gl'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
 const browser = await puppeteer.launch({
   executablePath: CHROME, headless: true, protocolTimeout: 0,
-  args: ['--allow-file-access-from-files', '--ignore-gpu-blocklist', ...angleArgs, '--enable-gpu-rasterization', '--window-size=1920,1080', '--disable-renderer-backgrounding', '--disable-background-timer-throttling']
+  args: ['--no-sandbox', '--allow-file-access-from-files', '--ignore-gpu-blocklist', ...angleArgs, '--enable-gpu-rasterization', '--window-size=1920,1080', '--disable-renderer-backgrounding', '--disable-background-timer-throttling']
 });
 async function openPage(tag = '') {
   const page = await browser.newPage();
