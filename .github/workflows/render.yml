@@ -1,0 +1,67 @@
+# Renders the full music video on GitHub's free CPU runners.
+# No GPU there, so Chrome falls back to Mesa's software GL (llvmpipe); 3758 frames
+# are split into 16 parallel segments to stay under the 6h job limit (~50 min each).
+# Manual trigger only: one full render costs ~800 Actions minutes.
+name: render
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Quick pipeline check before spending an hour of CPU time: paint 5 frames.
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: sudo apt-get install -y ffmpeg fonts-noto-cjk
+      - run: |
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+      - run: npm ci
+      - run: node render.mjs --chrome=/usr/bin/google-chrome-stable --sheet=4,24.8,62,98.5,133 --cols=3 --w=640 --out=out/check/smoke.jpg
+      - uses: actions/upload-artifact@v4
+        with: { name: smoke-sheet, path: out/check/smoke.jpg, retention-days: 7 }
+
+  frames:
+    needs: smoke
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: { segment: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: |
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+      - run: npm ci
+      - name: render segment
+        run: |
+          A=$(awk -v i=${{ matrix.segment }} -v d=156.6 -v s=16 'BEGIN{printf "%.4f", i*d/s}')
+          B=$(awk -v i=${{ matrix.segment }} -v d=156.6 -v s=16 'BEGIN{printf "%.4f", (i+1)*d/s}')
+          node render.mjs --chrome=/usr/bin/google-chrome-stable --frames=$A:$B --workers=4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frames-${{ matrix.segment }}
+          path: out/frames/*.jpg
+          retention-days: 1
+
+  encode:
+    needs: frames
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: sudo apt-get install -y ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: frames-*
+          merge-multiple: true
+          path: out/frames
+      - run: node render.mjs --encode --out=out/pdoom.mp4
+      - uses: actions/upload-artifact@v4
+        with: { name: pdoom-video, path: out/pdoom.mp4, retention-days: 14 }

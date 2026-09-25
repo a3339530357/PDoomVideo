@@ -93,7 +93,7 @@ function wipe(p, idx) {
 function karaoke(t) {
   const L = LY.find(l => t >= l[0] && t < l[1]); if (!L) return;
   const [a, b, txt] = L;
-  outX.font = '800 50px "Shantell Sans", sans-serif';
+  outX.font = '800 50px "Shantell Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif';
   const tw = outX.measureText(txt).width, grow = easeOut((t - a) / .18) * (1 - ease((t - (b - .12)) / .12));
   if (grow < .02) return;
   const w = (tw + 110) * grow, x0 = 960 - w / 2, y0 = 978;
@@ -104,7 +104,7 @@ function karaoke(t) {
 function drawKaraokeText(c) {
   if (!KARAOKE || KARAOKE.grow < .85) return;
   const { a, b, txt } = KARAOKE, t = T;
-  c.font = '800 50px "Shantell Sans", sans-serif'; c.textBaseline = 'middle'; c.textAlign = 'left';
+  c.font = '800 50px "Shantell Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif'; c.textBaseline = 'middle'; c.textAlign = 'left';
   const words = txt.split(' '), sp = c.measureText(' ').width, ws = words.map(w => c.measureText(w).width);
   const total = ws.reduce((p, q) => p + q, 0) + sp * (words.length - 1);
   const singDur = Math.min(b - a - .1, .45 + txt.length * .075), sung = clamp((t - a) / singDur) * txt.replace(/ /g, '').length;

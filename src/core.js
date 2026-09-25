@@ -221,9 +221,24 @@ window.renderSheet = async (times, cols = 3, w = 640) => {
 window.gpuInfo = () => { const gl = drawingContext, e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); };
 
 function devUI() {
-  const s = document.getElementById('scrub'), lab = document.getElementById('tt');
-  let busy = false, want = null;
+  const s = document.getElementById('scrub'), lab = document.getElementById('tt'), btn = document.getElementById('play');
+  const song = new Audio('assets/pdoom.mp3'); song.preload = 'auto';
+  let busy = false, want = null, playing = false;
   const go = async () => { if (busy) return; busy = true; while (want != null) { const t = want; want = null; const t0 = performance.now(); await window.renderAt(t); lab.textContent = `${t.toFixed(2)}s  ·  ${Math.round(performance.now() - t0)} ms/frame`; } busy = false; };
-  s.addEventListener('input', () => { want = +s.value; go(); });
+  s.addEventListener('input', () => { if (playing) { song.currentTime = +s.value; return; } want = +s.value; go(); });
+  // Play-through: the song's clock drives the painting, so picture and audio can't drift.
+  const tick = async () => {
+    if (!playing) return;
+    const t = Math.min(song.currentTime, DUR), t0 = performance.now();
+    await window.renderAt(t); s.value = t;
+    lab.textContent = `${t.toFixed(2)}s  ·  ${Math.round(performance.now() - t0)} ms/frame`;
+    if (song.ended) { playing = false; btn.textContent = '播放'; return; }
+    requestAnimationFrame(tick);
+  };
+  btn.addEventListener('click', () => {
+    playing = !playing;
+    if (playing) { if (song.ended) song.currentTime = 0; song.play(); btn.textContent = '暂停'; requestAnimationFrame(tick); }
+    else { song.pause(); btn.textContent = '播放'; }
+  });
   want = +(new URLSearchParams(location.search).get('t') || 0); s.value = want; go();
 }

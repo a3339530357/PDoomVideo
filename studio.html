@@ -3,7 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>P(doom) studio</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Shantell+Sans:wght@800&display=block">
+<style>
+  /* Self-hosted fonts (latin subset) so the page and headless rendering never wait on the network. */
+  @font-face { font-family: 'Permanent Marker'; font-style: normal; font-weight: 400; font-display: block; src: url(fonts/permanent-marker-latin.woff2) format('woff2'); }
+  @font-face { font-family: 'Shantell Sans'; font-style: normal; font-weight: 800; font-display: block; src: url(fonts/shantellsans-800-latin.woff2) format('woff2'); }
+</style>
 <style>
   html, body { margin: 0; background: #1b1820; color: #eee; font: 13px system-ui, sans-serif; }
   main { padding: 12px; display: grid; gap: 8px; }
@@ -11,6 +15,8 @@
   .p5Canvas { display: none !important; }
   .bar { display: flex; gap: 10px; align-items: center; max-width: 1280px; }
   #scrub { flex: 1; }
+  #play { font: 600 13px system-ui, sans-serif; padding: 6px 16px; border: 0; border-radius: 6px; background: #3a3346; color: #eee; cursor: pointer; }
+  #play:hover { background: #4a4158; }
   #tt { font-variant-numeric: tabular-nums; min-width: 190px; }
 </style>
 <script src="node_modules/p5/lib/p5.min.js"></script>
@@ -19,7 +25,7 @@
 <body>
 <main>
   <canvas id="out" width="1920" height="1080"></canvas>
-  <div class="bar"><input id="scrub" type="range" min="0" max="156.6" step="0.0417" value="0"><span id="tt">loading…</span></div>
+  <div class="bar"><button id="play">播放</button><input id="scrub" type="range" min="0" max="156.6" step="0.0417" value="0"><span id="tt">loading…</span></div>
 </main>
 <script src="src/core.js"></script>
 <script src="src/clawd.js"></script>
