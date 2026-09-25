@@ -43,7 +43,7 @@ async function openPage(tag = '') {
   const page = await browser.newPage();
   page.on('console', m => { if (['error', 'warn'].includes(m.type())) console.log(`[page${tag}]`, m.text()); });
   page.on('pageerror', e => console.log(`[page error${tag}]`, e.message));
-  await page.goto(pathToFileURL(resolve('studio.html')).href + '?render', { waitUntil: 'load' });
+  await page.goto(pathToFileURL(resolve('studio.html')).href + '?render', { waitUntil: 'load', timeout: 120000 });
   await page.waitForFunction('window.ready === true', { timeout: 300000 });
   if (args.loop) await page.evaluate(name => { window.LOOP = LOOPS[name]; }, args.loop);
   return page;
@@ -86,9 +86,11 @@ if (args.sheet) {
   const todo = []; for (let i = first; i <= last; i++) { const f = `${FRAMES_DIR}/f${String(i).padStart(5, '0')}.jpg`; if (!existsSync(f) || statSync(f).size < 1000) todo.push(i); }
   console.log(`${todo.length} frames to render (${last - first + 1 - todo.length} already done), ${workers} workers`);
   let next = 0, done = 0; const start = Date.now();
+  // Pages open one at a time: their CPU-bound setups (paper, grain) starve each other on small runners.
+  const pages = [];
+  for (let w = 0; w < workers; w++) pages.push(await openPage('#' + w));
   const work = async w => {
-    await new Promise(r => setTimeout(r, w * 15000)); // stagger startups so CPU-bound setups don't fight
-    const page = await openPage('#' + w);
+    const page = pages[w];
     while (next < todo.length) {
       const i = todo[next++], f = `${FRAMES_DIR}/f${String(i).padStart(5, '0')}.jpg`;
       const buf = await frameOf(page, i / fps, 'image/jpeg', .94);
