@@ -31,8 +31,10 @@ if (args.encode) {
 
 // d3d11 is Windows-only. WSL2 reaches the real GPU via Mesa's d3d12 driver (launch with
 // LD_LIBRARY_PATH=/usr/lib/wsl/lib GALLIUM_DRIVER=d3d12); plain Linux (CI runners, no GPU) uses SwiftShader.
+// FORCE_SW=1 overrides (useful when the WSL GPU bridge is wedged; ~50s/frame).
 const isWSL = process.platform !== 'win32' && readFileSync('/proc/sys/kernel/osrelease', 'utf8').toLowerCase().includes('microsoft');
-const angleArgs = process.platform === 'win32' ? ['--use-angle=d3d11', '--enable-gpu-rasterization']
+const angleArgs = process.env.FORCE_SW === '1' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']
+  : process.platform === 'win32' ? ['--use-angle=d3d11', '--enable-gpu-rasterization']
   : isWSL ? ['--use-angle=gl', '--enable-gpu-rasterization']
   : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']; // CPU-only CI runners: SwiftShader, no GPU raster
 const browser = await puppeteer.launch({

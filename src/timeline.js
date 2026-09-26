@@ -90,29 +90,40 @@ function wipe(p, idx) {
 }
 
 // ---------- karaoke ----------
+// Bilingual karaoke band: Chinese line (ZCOOL KuaiLe, lit character by character) over the
+// original English line (Shantell Sans), both inside one taller speech bubble.
+const KUAI = '"ZCOOL KuaiLe", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif';
+const SHAN = '"Shantell Sans", sans-serif';
 function karaoke(t) {
   const L = LY.find(l => t >= l[0] && t < l[1]); if (!L) return;
-  const [a, b, txt] = L;
-  outX.font = '800 50px "Shantell Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif';
-  const tw = outX.measureText(txt).width, grow = easeOut((t - a) / .18) * (1 - ease((t - (b - .12)) / .12));
+  const [a, b, zh, en] = L;
+  outX.font = `46px ${KUAI}`; const w1 = outX.measureText(zh).width;
+  outX.font = `800 30px ${SHAN}`; const w2 = outX.measureText(en).width;
+  const grow = easeOut((t - a) / .18) * (1 - ease((t - (b - .12)) / .12));
   if (grow < .02) return;
-  const w = (tw + 110) * grow, x0 = 960 - w / 2, y0 = 978;
-  const pts = [[x0 + jit(8), y0 + jit(4)], [x0 + w / 2, y0 - 4 + jit(4)], [x0 + w + jit(8), y0 + jit(4)], [x0 + w + 14 + jit(8), y0 + 44], [x0 + w + jit(8), y0 + 88 + jit(4)], [x0 + w / 2, y0 + 92 + jit(4)], [x0 + jit(8), y0 + 88 + jit(4)], [x0 - 14 + jit(8), y0 + 44]];
+  const w = (Math.max(w1, w2) + 110) * grow, x0 = 960 - w / 2, y0 = 941;
+  const pts = [[x0 + jit(8), y0 + jit(4)], [x0 + w / 2, y0 - 4 + jit(4)], [x0 + w + jit(8), y0 + jit(4)], [x0 + w + 14 + jit(8), y0 + 62], [x0 + w + jit(8), y0 + 119 + jit(4)], [x0 + w / 2, y0 + 125 + jit(4)], [x0 + jit(8), y0 + 119 + jit(4)], [x0 - 14 + jit(8), y0 + 62]];
   paint(pts, { wash: PAL.ink, washOp: 225, fill: PAL.violet, fillOp: 60, tex: .7, border: .4, ink: null });
-  KARAOKE = { a, b, txt, grow };
+  KARAOKE = { a, b, zh, en, grow };
 }
 function drawKaraokeText(c) {
   if (!KARAOKE || KARAOKE.grow < .85) return;
-  const { a, b, txt } = KARAOKE, t = T;
-  c.font = '800 50px "Shantell Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif'; c.textBaseline = 'middle'; c.textAlign = 'left';
-  const words = txt.split(' '), sp = c.measureText(' ').width, ws = words.map(w => c.measureText(w).width);
-  const total = ws.reduce((p, q) => p + q, 0) + sp * (words.length - 1);
-  const singDur = Math.min(b - a - .1, .45 + txt.length * .075), sung = clamp((t - a) / singDur) * txt.replace(/ /g, '').length;
-  let x = 960 - total / 2, done = 0; const y = 1022;
-  words.forEach((w, i) => {
-    const f = clamp((sung - done) / w.length); done += w.length;
-    c.fillStyle = PAL.cream; c.fillText(w, x, y);
-    if (f > 0) { c.save(); c.beginPath(); c.rect(x - 2, y - 40, ws[i] * f + 2, 80); c.clip(); c.fillStyle = PAL.ochre; c.fillText(w, x, y); c.restore(); }
-    x += ws[i] + sp;
+  const { a, b, zh, en } = KARAOKE, t = T;
+  c.textBaseline = 'middle'; c.textAlign = 'left';
+  // Chinese line sings at roughly one syllable per character; the English line follows it.
+  const singDur = Math.min(b - a - .1, .45 + zh.length * .22), sung = clamp((t - a) / singDur) * zh.length;
+  c.font = `46px ${KUAI}`;
+  const cs = Array.from(zh), ws = cs.map(ch => c.measureText(ch).width), total = ws.reduce((p, q) => p + q, 0);
+  let x = 960 - total / 2; const y = 985;
+  cs.forEach((ch, i) => {
+    const f = clamp(sung - i);
+    c.fillStyle = PAL.cream; c.fillText(ch, x, y);
+    if (f > 0) { c.save(); c.beginPath(); c.rect(x - 2, y - 40, ws[i] * f + 2, 80); c.clip(); c.fillStyle = PAL.ochre; c.fillText(ch, x, y); c.restore(); }
+    x += ws[i];
   });
+  c.font = `800 30px ${SHAN}`;
+  const ew = c.measureText(en).width; x = 960 - ew / 2; const y2 = 1037, f2 = clamp(sung / zh.length);
+  c.globalAlpha = .55; c.fillStyle = PAL.cream; c.fillText(en, x, y2);
+  if (f2 > 0) { c.save(); c.beginPath(); c.rect(x - 2, y2 - 28, ew * f2 + 2, 56); c.clip(); c.globalAlpha = .8; c.fillStyle = PAL.ochre; c.fillText(en, x, y2); c.restore(); }
+  c.globalAlpha = 1;
 }
