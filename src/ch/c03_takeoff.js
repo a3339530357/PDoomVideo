@@ -546,24 +546,58 @@
   // 5) ATOMS REARRANGING  48.6–51.9  "I feel my atoms rearranging"
   // =====================================================================================================
   const AT = { x: 960, y: 985, s: 46, TB: B(73), TC: 50.6, TR: 51.2, TS: B(75) };
-  // The Researcher as a cloud of coloured dots (local units, arms angled down-out as in the fizz pose)
+  // Konata as a cloud of coloured dots, with the same down-out arm pose as the fizz.
+  // Sample the layers back-to-front so long hair stays behind the sailor uniform.
   const RDOTS = (() => {
     const d = [], st = .66;
+    const inside = (x, y, poly) => {
+      let hit = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const [ax, ay] = poly[i], [bx, by] = poly[j];
+        if ((ay > y) !== (by > y) && x < (bx - ax) * (y - ay) / (by - ay) + ax) hit = !hit;
+      }
+      return hit;
+    };
+    const backHair = [[-2.5, -11.6], [-2.7, -8.5], [-3.05, -4.8], [-3.35, -.8], [-2.15, -1.55], [-1.65, -.45],
+      [-.65, -1.45], [.35, -.65], [1.05, -1.6], [2.35, -.75], [3.15, -1.45], [2.85, -6.8], [2.5, -11.7]];
+    const blouse = [[-1.9, -8.2], [1.9, -8.2], [1.7, -5.25], [-1.7, -5.25]];
+    const skirt = [[-1.65, -5.3], [1.65, -5.3], [2.4, -3.2], [1.2, -3.05], [0, -3.18], [-1.2, -3.05], [-2.4, -3.2]];
+    const collar = [[-1.85, -8.2], [-.65, -8.28], [0, -6.6], [.65, -8.28], [1.85, -8.2], [1.4, -7.25], [0, -6.35], [-1.4, -7.25]];
+    const scarf = [[0, -6.85], [-.48, -5.75], [-.1, -5.2], [.12, -5.8], [.4, -5.45], [.48, -5.8]];
+    const face = [[-2.25, -11.55], [-2.32, -10.25], [-1.8, -9.25], [-.7, -8.7], [0, -8.58], [.7, -8.7],
+      [1.8, -9.25], [2.32, -10.25], [2.25, -11.55], [0, -12.6]];
+    const bangs = [];
+    for (let i = 0; i <= 14; i++) {
+      const a = Math.PI + i / 14 * Math.PI;
+      bangs.push([Math.cos(a) * 2.65, -10.65 + Math.sin(a) * 2.7]);
+    }
+    bangs.push([2.55, -9.3], [1.94, -9.75], [1.87, -11.28], [1.24, -10.92], [1.36, -11.85], [.5, -10.94], [.53, -11.85],
+      [-.38, -10.99], [-.12, -12.02], [-1.2, -10.98], [-1, -11.83], [-1.85, -11.3], [-1.94, -9.65], [-2.55, -9.18]);
     for (let y = -13.3; y <= .3; y += st) for (let x = -5; x <= 5; x += st) {
       const jx = x + (hash(x * 13.1 + y * 7.7) - .5) * .25, jy = y + (hash(x * 3.7 + y * 11.3) - .5) * .25;
-      const dh = Math.hypot(jx, (jy + 10.7) / .97), g = side => Math.hypot(jx - side, jy + 10.55);
-      let c = null;
-      if (dh < 2.5) {
-        if (jy < -11.3 || (dh > 2.05 && jy < -10.2)) c = HAIR;
-        else if (Math.abs(g(-1) - .82) < .22 || Math.abs(g(1) - .82) < .22) c = PAL.ink;
-        else if (g(-1) < .3 || g(1) < .3) c = PAL.ink;
-        else c = SKIN;
-      } else if (jy >= -8.2 && jy <= -2.1 && Math.abs(jx) <= lerp(1.95, 2.45, (jy + 8.2) / 6.1)) c = (Math.abs(jx) < .8 * (1 - (jy + 8.2) / 1.9) && jy < -6.3) ? PAL.teal : '#F3E9D6';
-      else if (jy > -2.1 && jy <= -.35 && Math.abs(Math.abs(jx) - .8) < .5) c = PANTS;
-      else if (jy > -.35 && jy <= .3 && Math.abs(Math.abs(jx) - .9) < .7) c = PAL.ink;
+      let c = inside(jx, jy, backHair) ? HAIR : null;
+      if (jy >= -4.0 && jy <= .1 && Math.abs(Math.abs(jx) - .8) < .42) c = SKIN;
+      if (jy >= -2.278 && jy <= .1 && Math.abs(Math.abs(jx) - .8) < .43) c = KONATA.sock;
+      if (jy > -.35 && jy <= .3 && Math.abs(Math.abs(jx) - .9) < .7) c = KONATA.shoe;
+      if (inside(jx, jy, blouse)) c = COAT;
+      if (inside(jx, jy, skirt)) c = PANTS;
+      if (inside(jx, jy, collar)) c = KONATA.collar;
+      if (inside(jx, jy, scarf)) c = KONATA.scarf;
+      if (jy > -9 && jy < -8.1 && Math.abs(jx) < .45) c = SKIN;
+      if (inside(jx, jy, face)) c = SKIN;
+      if (inside(jx, jy, bangs)) c = HAIR;
       if (c) d.push([jx, jy, c]);
     }
-    for (const side of [-1, 1]) for (let k = 0; k <= 5; k++) { const f = k / 5; d.push([side * (1.75 + 2.64 * f), -7.6 + 1.81 * f, k === 5 ? SKIN : '#F3E9D6']); }
+    // Deliberate face dots retain the green eyes at this coarse particle resolution.
+    for (const side of [-1, 1]) {
+      d.push([side * 1.02, -10.48, KONATA.iris], [side * 1.02, -10.91, PAL.ink]);
+      for (let k = 0; k <= 5; k++) {
+        const f = k / 5, c = k < 2 ? COAT : k === 2 ? KONATA.collar : SKIN;
+        d.push([side * (1.75 + 2.64 * f), -7.6 + 1.81 * f, c]);
+      }
+    }
+    // Her ahoge remains identifiable as the particles rush back into place.
+    d.push([-.25, -13.17, HAIR], [.15, -14.28, HAIR], [1.3, -14.48, HAIR], [1.85, -13.9, HAIR]);
     return d;
   })();
   // paperclip wire, unit height, evenly resampled
@@ -642,10 +676,10 @@
       // glint running along the finished paperclip
       if (p3 > .9 && p4 < .1) { const g = clipXY(CLIP.at(seg(t, TC + .3, TR))); sparkle(g[0], g[1], 34, PAL.cream); }
     } else {
-      // snapped back together: dizzy, glasses on upside down
+      // snapped back together: dizzy, with her ahoge still standing on end
       const a = t - TS, take = Math.exp(-a * 7) * Math.cos(a * 28);
       researcher(X, Y, S, { sq: .22 * take, rot: .07 * Math.sin(t * 6), aL: -.9 + .3 * Math.sin(t * 5), aR: -.9 - .3 * Math.sin(t * 5), noShadow: true,
-        eyes: 'swirl', mouth: 'wobble', hairUp: .8, glassesTilt: Math.PI - .25 });
+        eyes: 'swirl', mouth: 'wobble', hairUp: .8 });
       dizzy(X, Y - 13.4 * S, S, t);
     }
     camEnd();

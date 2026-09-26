@@ -885,20 +885,11 @@
       const a = hash(i * 11) * TAU, d = (300 + hash(i * 17) * 300) * (1 - easeOut(k)), s = (22 + hash(i) * 16) * Math.pow(.12, k);
       paint(ellPts(CX + Math.cos(a) * d, CY - 60 + Math.sin(a) * d, s, s * .75, 8, s * .15, lt * 5 + i), { wash: '#5E344E', ink: INK, sw: .5 });
     }
-    // the Researcher tumbling away, shrinking toward the glow
+    // Konata tumbles away, her long hair trailing as she shrinks toward the glow.
     const s = 15 * Math.pow(.1, k), px = lerp(1010, CX + 2, easeOut(k)), py = lerp(430, CY - 10, easeOut(k));
     researcher(px, py + 6.6 * s, s, {
-      noShadow: true, rot: lt * 9, aL: 1.2 + .8 * Math.sin(t * 22), aR: 1.0 + .8 * Math.sin(t * 19 + 1), run: t * 5, hairUp: 1, eyes: 'wide', mouth: 'O', brows: 'worried',
-      draw: lt > .12 ? (s2, sw) => { paint(ellPts(0, -10.55 * s2, 1.95 * s2, .95 * s2, 16), { wash: SKIN, ink: null }); for (const sd of [-1, 1]) paint(ellPts(sd * s2, -10.55 * s2, .3 * s2, .36 * s2, 8), { wash: INK, ink: null }); } : null
+      noShadow: true, rot: lt * 9, aL: 1.2 + .8 * Math.sin(t * 22), aR: 1.0 + .8 * Math.sin(t * 19 + 1), run: t * 5, hairUp: 1, eyes: 'wide', mouth: 'O', brows: 'worried'
     });
-    // the glasses fly off and flutter back up past the camera
-    if (lt > .12) {
-      const g = lt - .12, gx = px + g * 700, gy = py - g * 520, gs = 1 + g * 3.2, gr = g * 7;
-      push(); translate(gx, gy); rotate(gr); scale(gs);
-      for (const sd of [-1, 1]) paint(ellPts(sd * 16, 0, 13, 12, 14), { wash: '#FFFFFF', washOp: 90, ink: INK, sw: .8 });
-      inkLine([[-4, 0], [4, 0]], .8, INK, 'inkfine', 0);
-      pop();
-    }
     // darkness closes in
     const r = lerp(1300, 0, easeIn(seg(t, 94.62, 95.33)));
     iris(px, py, r, PAL.night);

@@ -710,7 +710,16 @@
       cover(DARK);
       if (!blink) {                                                              // eyes in the dark
         for (const ex of [-3, 2]) paint(rrPts(HCX + ex * 26, HY - 7 * 26 + 2 * 26 - 10, 26, 52, 8), { wash: PAL.cream, washOp: 235, ink: null });
-        for (const s of [-1, 1]) { paint(ellPts(HRX + s * 24, HY - 4 + 1.1 * 24 - 10.55 * 24, 19, 19, 16), { ink: PAL.cream, sw: 1 }); disc(HRX + s * 24, HY - 4 + 1.1 * 24 - 10.55 * 24, 5, PAL.cream, 240, 8); }
+        // Konata's half-lidded anime eyes stay visible without the old spectacle rims.
+        for (const side of [-1, 1]) {
+          const ex = HRX + side * 24, ey = HY - 4 + 1.1 * 24 - 10.55 * 24;
+          paint([[ex - 18, ey - 7], [ex + 17, ey - 7], [ex + 15, ey + 10], [ex + 7, ey + 15], [ex - 9, ey + 13], [ex - 17, ey + 5]],
+            { wash: PAL.cream, washOp: 235, ink: null, curv: .3 });
+          paint(ellPts(ex + look * 5, ey + 3, 7, 10, 12), { wash: KONATA.iris, ink: null });
+          paint(ellPts(ex + look * 5, ey + 2, 3, 7, 10), { wash: DARK, ink: null });
+          disc(ex + look * 5 - 2, ey - 3, 2.5, PAL.cream, 255, 8);
+          inkLine([[ex - 20, ey - 8], [ex, ey - 9], [ex + 18, ey - 7]], 1.1, PAL.cream, 'inkfine', .2);
+        }
       }
     }
     if (t > 136.95) darkEyes(E, backOut(seg(t, 136.95, 137.12)), t > 137.22 && t < 137.3);   // ...something else is watching
